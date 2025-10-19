@@ -98,6 +98,37 @@ def upload_gedcom():
 
     return {"message": f"File {file.filename} uploaded successfully", "path": filepath}
 
+from gedcom.element.individual import IndividualElement
+from gedcom.parser import Parser
+
+@app.route("/parse_gedcom", methods=["GET"])
+def parse_gedcom():
+    folder = "uploads"
+    files = [f for f in os.listdir(folder) if f.endswith(".ged")]
+    if not files:
+        return {"error": "No GEDCOM file found. Please upload one first."}, 400
+
+    filepath = os.path.join(folder, sorted(files)[-1])
+
+    parser = Parser()
+    parser.parse_file(filepath)
+
+    root_child_elements = parser.get_root_child_elements()
+    individuals = []
+
+    for element in root_child_elements:
+        if isinstance(element, IndividualElement):
+            name = element.get_name()
+            birth_data = element.get_birth_data()
+            death_data = element.get_death_data()
+            individuals.append({
+                "name": name,
+                "birth": birth_data,
+                "death": death_data
+            })
+
+    return {"individuals": individuals[:20]}
+
 @app.route("/")
 def hello():
     return "OAuth-ready genealogy API is alive!"
