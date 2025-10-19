@@ -1,11 +1,15 @@
 from flask import Flask, redirect, request
 import requests, os
 from urllib.parse import urlencode
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 
-# Replace with your real FamilySearch client ID once approved
-CLIENT_ID = "YOUR_CLIENT_ID_HERE"
+CLIENT_ID = os.getenv("CLIENT_ID", "YOUR_CLIENT_ID_HERE")
+ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")  # this is where we'll keep your token
 REDIRECT_URI = "https://genealogy-proxy.onrender.com/callback"
 BASE_AUTH_URL = "https://ident.familysearch.org/cis-web/oauth2/v3/authorization"
 TOKEN_URL = "https://ident.familysearch.org/cis-web/oauth2/v3/token"
@@ -43,7 +47,25 @@ def callback():
     if not access_token:
         return f"Error: {token_data}", 400
 
-    return f"Access token acquired successfully: {access_token[:20]}..."
+    # save token to .env file
+    with open(".env", "r") as f:
+        lines = f.readlines()
+
+    new_lines = []
+    found = False
+    for line in lines:
+        if line.startswith("ACCESS_TOKEN="):
+            new_lines.append(f"ACCESS_TOKEN={access_token}\n")
+            found = True
+        else:
+            new_lines.append(line)
+    if not found:
+        new_lines.append(f"ACCESS_TOKEN={access_token}\n")
+
+    with open(".env", "w") as f:
+        f.writelines(new_lines)
+
+    return "Access token saved successfully!"
 
 # Step 3: fetch user’s family tree (once you have token)
 @app.route("/tree", methods=["GET"])
