@@ -82,6 +82,22 @@ def get_tree():
     response = requests.get(url, headers=headers)
     return response.json()
 
+@app.route("/upload_gedcom", methods=["POST"])
+def upload_gedcom():
+    if "file" not in request.files:
+        return {"error": "No file uploaded"}, 400
+
+    file = request.files["file"]
+    if not file.filename.endswith(".ged"):
+        return {"error": "File must be a GEDCOM (.ged) file"}, 400
+
+    # Save file locally
+    filepath = os.path.join("uploads", file.filename)
+    os.makedirs("uploads", exist_ok=True)
+    file.save(filepath)
+
+    return {"message": f"File {file.filename} uploaded successfully", "path": filepath}
+
 @app.route("/")
 def hello():
     return "OAuth-ready genealogy API is alive!"
